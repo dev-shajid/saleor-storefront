@@ -1,0 +1,22 @@
+query GetProductReviews($product: ID, $status: Boolean) {
+	getProductReview(product: $product, status: $status) {
+		id
+		rating
+		user {
+			id
+			email
+			firstName
+			lastName
+		}
+		review
+		status
+		title
+		createdAt
+		updatedAt
+		media {
+			url
+			alt
+			type
+		}
+	}
+}
