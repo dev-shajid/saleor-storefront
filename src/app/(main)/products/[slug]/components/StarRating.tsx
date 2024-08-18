@@ -41,6 +41,8 @@ export function StarRating({
 		setTempRating(hoverValue);
 	};
 
+	const uniqueId = React.useId();
+
 	return (
 		<div className="flex">
 			{/* Make a fraction fill star rating component of 3.5 rating */}
@@ -48,7 +50,7 @@ export function StarRating({
 			{Array.from({ length: 5 }, (_, i) => {
 				const fillPercentage = Math.min(Math.max(tempRating - i, 0), 1) * 100;
 
-				const gradientId = `grad-${Math.random()}-${i}`;
+				const gradientId = `grad-${uniqueId}-${i}`;
 
 				return (
 					<span
