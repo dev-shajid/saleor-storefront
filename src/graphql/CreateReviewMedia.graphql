@@ -1,0 +1,13 @@
+mutation CreateReviewMedia($input: CreateReviewMediaInput!) {
+	createReviewMedia(input: $input) {
+		review {
+			id
+		}
+		media {
+			url
+		}
+		errors {
+			message
+		}
+	}
+}

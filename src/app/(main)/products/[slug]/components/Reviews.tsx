@@ -95,35 +95,36 @@ export function Reviews({
 										className="grid gap-4"
 										style={{ gridTemplateColumns: "repeat(auto-fit, minmax(100px, 120px))" }}
 									>
-										{review?.media?.length &&
-											review?.media.map((media, index) => (
-												<React.Fragment key={index}>
-													{media.type === ReviewMediaType.Image ? (
-														<a
-															target="_blank"
-															href={media.url}
-															className="max-w-full rounded-md border border-gray-300 bg-gray-200"
-														>
-															<Image
-																src={media.url}
-																alt={media.alt}
-																width={100}
-																height={100}
-																className="aspect-square h-full w-full rounded-md object-contain"
-															/>
-														</a>
-													) : media.type === ReviewMediaType.Video ? (
-														<a
-															href={media.url}
-															target="_blank"
-															className="flex aspect-square max-w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border border-gray-400 bg-gray-300 text-center text-xs"
-														>
-															<PlayCircle size={24} className="text-gray-500" />
-															<p>{textSlice(media.alt)}</p>
-														</a>
-													) : null}
-												</React.Fragment>
-											))}
+										{review?.media
+											? review?.media.map((media, index) => (
+													<React.Fragment key={index}>
+														{media.type === ReviewMediaType.Image ? (
+															<a
+																target="_blank"
+																href={media.url}
+																className="max-w-full rounded-md border border-gray-300 bg-gray-200"
+															>
+																<Image
+																	src={media.url}
+																	alt={media.alt}
+																	width={100}
+																	height={100}
+																	className="aspect-square h-full w-full rounded-md object-contain"
+																/>
+															</a>
+														) : media.type === ReviewMediaType.Video ? (
+															<a
+																href={media.url}
+																target="_blank"
+																className="flex aspect-square max-w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border border-gray-400 bg-gray-300 text-center text-xs"
+															>
+																<PlayCircle size={24} className="text-gray-500" />
+																<p>{textSlice(media.alt)}</p>
+															</a>
+														) : null}
+													</React.Fragment>
+											  ))
+											: null}
 									</div>
 								</div>
 							);

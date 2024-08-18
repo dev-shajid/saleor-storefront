@@ -9,7 +9,7 @@ import { MediaInput, type MediaItem } from "../../products/[slug]/components/Med
 import { ErrorMessage } from "./ErrorMessage";
 import { ApiResponseErrors } from "./ApiResponseErrors";
 import { Loader } from "lucide-react";
-import { SubmitProductReview } from "../action";
+import { CreateReviewMedia, SubmitProductReview } from "../action";
 
 type Props = {
 	searchParams: {
@@ -48,6 +48,12 @@ type SubmitReviewResponseTypes = {
 	errors: { message: string }[];
 };
 
+type SubmitReviewMediaResponseTypes = {
+	success: boolean;
+	media: string[];
+	errors: { message: string }[];
+};
+
 const SignupSchema = Yup.object().shape({
 	title: Yup.string().trim().min(3, "Too Short!").max(50, "Too Long!").required("Required Field"),
 	rating: Yup.number()
@@ -70,7 +76,7 @@ export function ReviewForm({ searchParams }: Props) {
 
 	// console.log({ user, setErrors, startTransition });
 
-	let redirectUrl = `/products/${slug}?success=true&message=Review Submitted Successfully!`;
+	let redirectUrl = `/products/${slug}?success=true&message=Review Submitted Successfully! Wait for approval`;
 	console.log(redirectUrl);
 	if (variant) redirectUrl += `&variant=${variant}`;
 
@@ -102,25 +108,25 @@ export function ReviewForm({ searchParams }: Props) {
 					validationSchema={SignupSchema}
 					onSubmit={(values) => {
 						if (loading) return;
-						const formData = new FormData();
 						startTransition(async () => {
-							mediaItems
-								.filter((e) => e.type === "file" && e.file)
-								.forEach((e) => {
-									formData.append("image", e.file!);
-								});
-
 							const mediaData = {
 								mediaUrl: mediaItems.filter((e) => e.type === "url").map((e) => e.url!),
-								image: formData,
+								image: mediaItems.filter((e) => e.type === "file").map((e) => e.file!),
 							};
 							const reviewData = { ...values, rating: Number(values.rating), product, user: user?.id || "" };
 
 							try {
-								const res: SubmitReviewResponseTypes = await SubmitProductReview(reviewData, mediaData);
+								const res: SubmitReviewResponseTypes = await SubmitProductReview(reviewData);
 								console.log(res);
-								if (res.success) router.push(redirectUrl);
-								setErrors(res?.errors);
+								if (!res.success) return setErrors(res.errors);
+
+								const mediaRes: SubmitReviewMediaResponseTypes = await CreateReviewMedia(
+									res?.review?.id ?? "",
+									mediaData,
+								); //"UmV2aWV3OjM="
+								console.log(mediaRes);
+								if (!mediaRes.success) return setErrors(mediaRes.errors.map((e) => ({ message: e.message })));
+								router.push(redirectUrl);
 							} catch (error) {
 								console.log({ error });
 								let errorMessage = "Something went wrong!";

@@ -1,7 +1,7 @@
-"use server";
+// "use server";
 
-import { SubmitProductReviewDocument } from "@/gql/graphql";
-import { executeGraphQL } from "@/lib/graphql";
+import { CreateReviewMediaDocument, SubmitProductReviewDocument } from "@/gql/graphql";
+import { executeGraphQL, executeMultipartGraphQL } from "@/lib/graphql";
 
 type SubmitReviewArgs = {
 	rating: number;
@@ -12,14 +12,11 @@ type SubmitReviewArgs = {
 };
 
 type MediaArgs = {
-	image?: FormData | undefined;
+	image?: File[] | undefined;
 	mediaUrl?: string[] | undefined;
 };
 
-export const SubmitProductReview = async (
-	{ rating, title, review, user, product }: SubmitReviewArgs,
-	{ image, mediaUrl }: MediaArgs,
-) => {
+export const SubmitProductReview = async ({ rating, title, review, user, product }: SubmitReviewArgs) => {
 	try {
 		const { submitProductReview } = await executeGraphQL(SubmitProductReviewDocument, {
 			variables: {
@@ -51,8 +48,6 @@ export const SubmitProductReview = async (
 		// }
 
 		return { success: true, review: submitProductReview?.review, errors: [] };
-
-		console.log({ image, mediaUrl });
 	} catch (error) {
 		// Handle unexpected errors
 		let errorMessage = "An unexpected error occurred";
@@ -96,99 +91,80 @@ const formatGraphQLErrors = (errors: { message: string }[]): { message: string }
 	});
 };
 
-/*
-
-
-
-
 export const CreateReviewMedia = async (review: string, { image, mediaUrl }: MediaArgs) => {
 	try {
-		// Get Image Files from FormData
-		const files = image?.getAll("image");
+		const response: string[] = [];
 
-		if (files?.length) {
-			for (const file of files as File[]) {
+		if (image?.length) {
+			for (const file of image) {
 				try {
-					await uploadFileWithReviewId(review, file);
-					// console.log(imageFileRes?.data?.createReviewMedia);
+					const { createReviewMedia } = await executeMultipartGraphQL(CreateReviewMediaDocument, {
+						variables: {
+							input: {
+								review,
+								image: file,
+							},
+						},
+						file: file,
+					});
+
+					if (createReviewMedia?.errors.length)
+						return {
+							success: true,
+							media: [] as string[],
+							errors: createReviewMedia?.errors.map((e) => ({
+								message: e.message ?? "An unkonwn error occured",
+							})),
+						};
+					response.push(createReviewMedia?.media?.url ?? "");
 				} catch (error) {
-					console.error('Error uploading file:', file, error);
+					console.error("Error uploading file:", file, error);
+				}
+			}
+		}
+		if (mediaUrl?.length) {
+			for (const url of mediaUrl) {
+				try {
+					const { createReviewMedia } = await executeGraphQL(CreateReviewMediaDocument, {
+						variables: {
+							input: {
+								review,
+								mediaUrl: url,
+							},
+						},
+						cache: "no-cache",
+					});
+
+					if (createReviewMedia?.errors.length)
+						return {
+							success: true,
+							media: [] as string[],
+							errors: createReviewMedia?.errors.map((e) => ({ message: e.message! })),
+						};
+					if (createReviewMedia?.media?.url) response.push(createReviewMedia?.media?.url);
+				} catch (error) {
+					console.error("Error uploading file by url:", url, error);
 				}
 			}
 		}
 
-
-
-		if (mediaUrl?.length) {
-			for (const url of mediaUrl) {
-				console.log("Url", url);
-				await executeGraphQL(CreateReviewMediaMutation, {
-					variables: {
-						review,
-						mediaUrl: url,
-					},
-					cache: "no-cache",
-				});
-			}
-		}
+		return { success: true, media: response, errors: [] };
 	} catch (error) {
-		console.log("Error submitting review media", error);
-		return JSON.parse(JSON.stringify(error));
+		console.error("Error submitting review media:", JSON.parse(JSON.stringify(error)));
+		let errorMessage = "An unexpected error occurred";
+
+		if (error instanceof Error) {
+			errorMessage = error.message || errorMessage;
+		} else if (typeof error === "string") {
+			errorMessage = error;
+		} else {
+			console.error("Unknown error type:", error);
+		}
+
+		return {
+			success: false,
+			media: [] as string[],
+			errors: formatGraphQLErrors([{ message: errorMessage }]),
+		};
 	}
 };
-
-
-const uploadFileWithReviewId = async (reviewId: string, file: File) => {
-	// Define the mutation
-	const mutation = `
-        mutation createReviewMedia($review: ID!, $image: Upload, $alt: String) {
-            createReviewMedia(input: {
-                review: $review,
-                image: $image,
-                alt: $alt
-            }) {
-                review {
-                    media {
-                        url
-                        alt
-                    }
-                }
-                errors {
-                    code
-                    field
-                }
-            }
-        }
-    `;
-
-	// Define the variables
-	const variables = {
-		review: reviewId,
-		alt: '',  // Or any other alt text you want to use
-	};
-
-	// Prepare the multipart request body
-	const operations = {
-		query: mutation,
-		variables: variables
-	};
-
-	const map = {
-		"0": ["variables.image"]
-	};
-
-	const formData = new FormData();
-	formData.append("operations", JSON.stringify(operations));
-	formData.append("map", JSON.stringify(map));
-	formData.append("0", file);  // Add the file to the request
-
-	// Send the request
-	const response = await fetch(process.env.NEXT_PUBLIC_SALEOR_API_URL!, {
-		method: 'POST',
-		body: formData
-	});
-
-	const result = await response.json();
-	return result;
-};
-*/

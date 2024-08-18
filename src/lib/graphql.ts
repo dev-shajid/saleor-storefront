@@ -20,27 +20,37 @@ export async function executeMultipartGraphQL<Result, Variables>(
 		headers?: HeadersInit;
 		revalidate?: number;
 		variables?: Variables & Record<string, any>;
+		file: File;
 	},
 ): Promise<Result> {
 	invariant(process.env.NEXT_PUBLIC_SALEOR_API_URL, "Missing NEXT_PUBLIC_SALEOR_API_URL env variable");
-	const { variables, headers, revalidate } = options;
+	const { variables, headers, revalidate, file } = options;
 
-	const formData = new FormData();
-	formData.append("query", operation.toString());
-	if (variables) {
-		formData.append("variables", JSON.stringify(variables));
-		// Append files if present in variables
-		for (const [key, value] of Object.entries(variables)) {
-			if (value instanceof File) {
-				formData.append(key, value);
-			}
-		}
+	// Convert the GraphQL document to a string
+	const query = operation.toString();
+	if (!query) {
+		throw new Error("Failed to convert GraphQL operation to a string.");
 	}
 
-	const response = await fetch(process.env.NEXT_PUBLIC_SALEOR_API_URL, {
+	// Prepare the multipart request body
+	const operations = {
+		query: query,
+		variables: variables || {},
+	};
+
+	const map = {
+		"0": ["variables.input.image"],
+	};
+
+	const formData = new FormData();
+	formData.append("operations", JSON.stringify(operations));
+	formData.append("map", JSON.stringify(map));
+	formData.append("0", file); // Add the file to the request
+
+	const response = await fetch(process.env.NEXT_PUBLIC_SALEOR_API_URL!, {
 		method: "POST",
 		headers: {
-			...headers, // Make sure to exclude 'Content-Type' as it will be set by FormData automatically
+			...headers, // Exclude 'Content-Type' as it will be set by FormData automatically
 		},
 		body: formData,
 		next: { revalidate },
