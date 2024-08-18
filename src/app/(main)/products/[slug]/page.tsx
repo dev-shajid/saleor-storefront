@@ -8,6 +8,8 @@ import invariant from "ts-invariant";
 import { type WithContext, type Product } from "schema-dts";
 import { AddButton } from "./AddButton";
 import { Reviews } from "./components/Reviews";
+import { AverageRating } from "./components/AverageRating";
+import { AlertSuccess } from "./components/AlertSuccess";
 import { VariantSelector } from "@/ui/components/VariantSelector";
 import { ProductImageWrapper } from "@/ui/atoms/ProductImageWrapper";
 import { executeGraphQL, formatMoney, formatMoneyRange } from "@/lib/graphql";
@@ -81,7 +83,10 @@ export async function generateStaticParams() {
 
 const parser = edjsHTML();
 
-export default async function Page(props: { params: { slug: string }; searchParams: { variant?: string } }) {
+export default async function Page(props: {
+	params: { slug: string };
+	searchParams: { variant?: string; success?: boolean | undefined; message?: string | undefined };
+}) {
 	const { params, searchParams } = props;
 
 	const { product } = await executeGraphQL(ProductDetailsDocument, {
@@ -185,51 +190,65 @@ export default async function Page(props: { params: { slug: string }; searchPara
 	};
 
 	return (
-		<section className="mx-auto grid max-w-7xl p-8">
-			<script
-				type="application/ld+json"
-				dangerouslySetInnerHTML={{
-					__html: JSON.stringify(productJsonLd),
-				}}
-			/>
-			<form className="grid gap-2 sm:grid-cols-2" action={addItem}>
-				{firstImage && (
-					<ProductImageWrapper
-						priority={true}
-						alt={firstImage.alt ?? ""}
-						width={1024}
-						height={1024}
-						src={firstImage.url}
-					/>
-				)}
-				<div className="flex flex-col pt-6 sm:px-6 sm:pt-0">
-					<div>
-						<h1 className="mb-4 flex-auto text-3xl font-bold tracking-tight text-neutral-900">
-							{product?.name}
-						</h1>
-						<p className="mb-8 text-sm font-medium text-neutral-900" data-testid="ProductElement_Price">
-							{price}
-						</p>
+		<>
+			{searchParams.success && searchParams.message ? <AlertSuccess message={searchParams.message} /> : null}
+			<section className="mx-auto grid max-w-7xl p-8">
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify(productJsonLd),
+					}}
+				/>
+				<form className="grid gap-2 sm:grid-cols-2" action={addItem}>
+					{firstImage && (
+						<ProductImageWrapper
+							priority={true}
+							alt={firstImage.alt ?? ""}
+							width={1024}
+							height={1024}
+							src={firstImage.url}
+						/>
+					)}
+					<div className="flex flex-col pt-6 sm:px-6 sm:pt-0">
+						<div>
+							<h1 className="mb-4 flex-auto text-3xl font-bold tracking-tight text-neutral-900">
+								{product?.name}
+							</h1>
+							<p className="mb-8 text-sm font-medium text-neutral-900" data-testid="ProductElement_Price">
+								{price}
+							</p>
 
-						{variants && (
-							<VariantSelector selectedVariant={selectedVariant} variants={variants} product={product} />
-						)}
-						{description && (
-							<div className="mt-8 space-y-6">
-								{description.map((content) => (
-									<div key={content} dangerouslySetInnerHTML={{ __html: xss(content) }} />
-								))}
-							</div>
-						)}
-						<AvailabilityMessage isAvailable={isAvailable} />
-					</div>
+							{data.getProductReview && data.getProductReview?.length ? (
+								<div>
+									<AverageRating reviews={data.getProductReview.map((e) => ({ rating: e?.rating || 0 }))} />
+								</div>
+							) : null}
 
-					<div className="mt-8">
-						<AddButton disabled={!selectedVariantID || !selectedVariant?.quantityAvailable} />
+							{variants && (
+								<VariantSelector selectedVariant={selectedVariant} variants={variants} product={product} />
+							)}
+							{description && (
+								<div className="mt-8 space-y-6">
+									{description.map((content) => (
+										<div key={content} dangerouslySetInnerHTML={{ __html: xss(content) }} />
+									))}
+								</div>
+							)}
+							<AvailabilityMessage isAvailable={isAvailable} />
+						</div>
+
+						<div className="mt-8">
+							<AddButton disabled={!selectedVariantID || !selectedVariant?.quantityAvailable} />
+						</div>
 					</div>
-				</div>
-			</form>
-			<Reviews reviewsData={data} productId={product.id} slug={product.slug} variant={searchParams.variant} />
-		</section>
+				</form>
+				<Reviews
+					reviewsData={data}
+					productId={product.id}
+					slug={product.slug}
+					variant={searchParams.variant}
+				/>
+			</section>
+		</>
 	);
 }

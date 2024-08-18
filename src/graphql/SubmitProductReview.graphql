@@ -1,0 +1,19 @@
+mutation SubmitProductReview($input: SubmitProductReviewInput!) {
+	submitProductReview(input: $input) {
+		review {
+			id
+			rating
+			title
+			review
+			createdAt
+			user {
+				id
+				email
+			}
+		}
+		errors {
+			message
+			code
+		}
+	}
+}

@@ -36,11 +36,9 @@ export function Reviews({
 			<div className="flex justify-between gap-4 p-4">
 				<div className="space-y-2">
 					<div className="text-xl font-semibold">Product Review</div>
-					{reviews?.length ? (
+					{reviews && reviews?.length ? (
 						<div>
-							{!reviews || !reviews.length ? null : (
-								<AverageRating reviews={reviews.map((e) => ({ rating: e?.rating || 0 }))} />
-							)}
+							<AverageRating reviews={reviews.map((e) => ({ rating: e?.rating || 0 }))} />
 						</div>
 					) : null}
 				</div>

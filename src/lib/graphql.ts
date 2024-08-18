@@ -13,6 +13,59 @@ type GraphQLRespone<T> = { data: T } | GraphQLErrorResponse;
 
 export const ProductsPerPage = 12;
 
+// TODO: Add support for multipart requests FIXME: This is a temporary solution
+export async function executeMultipartGraphQL<Result, Variables>(
+	operation: TypedDocumentString<Result, Variables>,
+	options: {
+		headers?: HeadersInit;
+		revalidate?: number;
+		variables?: Variables & Record<string, any>;
+	},
+): Promise<Result> {
+	invariant(process.env.NEXT_PUBLIC_SALEOR_API_URL, "Missing NEXT_PUBLIC_SALEOR_API_URL env variable");
+	const { variables, headers, revalidate } = options;
+
+	const formData = new FormData();
+	formData.append("query", operation.toString());
+	if (variables) {
+		formData.append("variables", JSON.stringify(variables));
+		// Append files if present in variables
+		for (const [key, value] of Object.entries(variables)) {
+			if (value instanceof File) {
+				formData.append(key, value);
+			}
+		}
+	}
+
+	const response = await fetch(process.env.NEXT_PUBLIC_SALEOR_API_URL, {
+		method: "POST",
+		headers: {
+			...headers, // Make sure to exclude 'Content-Type' as it will be set by FormData automatically
+		},
+		body: formData,
+		next: { revalidate },
+	});
+
+	if (!response.ok) {
+		const body = await (async () => {
+			try {
+				return await response.text();
+			} catch {
+				return "";
+			}
+		})();
+		throw new HTTPError(response, body);
+	}
+
+	const body = (await response.json()) as GraphQLRespone<Result>;
+
+	if ("errors" in body) {
+		throw new GraphQLError(body);
+	}
+
+	return body.data;
+}
+
 export async function executeGraphQL<Result, Variables>(
 	operation: TypedDocumentString<Result, Variables>,
 	options: {

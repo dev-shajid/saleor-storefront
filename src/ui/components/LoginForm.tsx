@@ -18,6 +18,7 @@ export function LoginForm() {
 		event.preventDefault();
 
 		const { data } = await signIn(formValues);
+		console.log(data);
 
 		if (data.tokenCreate.errors.length > 0) {
 			setErrors(data.tokenCreate.errors.map((error) => error.message));

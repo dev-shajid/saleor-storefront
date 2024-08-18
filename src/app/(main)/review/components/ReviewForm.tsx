@@ -3,13 +3,13 @@
 import React, { useState, useTransition } from "react";
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useUser } from "@/checkout/hooks/useUser";
 import { MediaInput, type MediaItem } from "../../products/[slug]/components/MediaInput";
-// import { SubmitProductReview } from '../actions';
 import { ErrorMessage } from "./ErrorMessage";
 import { ApiResponseErrors } from "./ApiResponseErrors";
 import { Loader } from "lucide-react";
+import { SubmitProductReview } from "../action";
 
 type Props = {
 	searchParams: {
@@ -23,6 +23,29 @@ type FormValues = {
 	title: string;
 	rating: string;
 	review: string;
+};
+
+type ReviewTypes =
+	| {
+			__typename?: "Review";
+			id: string;
+			rating: number;
+			title: string;
+			review: string;
+			createdAt: string;
+			user?: {
+				__typename?: "User";
+				id: string;
+				email: string;
+			} | null;
+	  }
+	| null
+	| undefined;
+
+type SubmitReviewResponseTypes = {
+	success: boolean;
+	review: ReviewTypes | null;
+	errors: { message: string }[];
 };
 
 const SignupSchema = Yup.object().shape({
@@ -41,16 +64,20 @@ export function ReviewForm({ searchParams }: Props) {
 	const [isPending, startTransition] = useTransition();
 	const [errors, setErrors] = useState<{ message: string }[] | null>(null);
 	const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-	const { user, loading } = useUser();
+	const { user, loading, authenticated } = useUser();
 
-	console.log({ user, setErrors, startTransition });
+	const router = useRouter();
+
+	// console.log({ user, setErrors, startTransition });
 
 	let redirectUrl = `/products/${slug}?success=true&message=Review Submitted Successfully!`;
 	console.log(redirectUrl);
 	if (variant) redirectUrl += `&variant=${variant}`;
 
 	if (!product || !slug) {
-		redirect("/404");
+		// --> FIXME:  !authenticated
+		router.push("/404");
+		console.log(authenticated);
 	}
 
 	if (isPending || loading) {
@@ -75,20 +102,34 @@ export function ReviewForm({ searchParams }: Props) {
 					validationSchema={SignupSchema}
 					onSubmit={(values) => {
 						if (loading) return;
-						alert(JSON.stringify(values));
-						// const formData = new FormData();
-						// startTransition(async () => {
-						//   mediaItems.filter((e) => e.type === 'file' && e.file).forEach((e) => {
-						//     formData.append('image', e.file!);
-						//   });
+						const formData = new FormData();
+						startTransition(async () => {
+							mediaItems
+								.filter((e) => e.type === "file" && e.file)
+								.forEach((e) => {
+									formData.append("image", e.file!);
+								});
 
-						//   const mediaData = { mediaUrl: mediaItems.filter((e) => e.type === 'url').map((e) => e.url!), image: formData };
-						//   const reviewData = { ...values, rating: Number(values.rating), product, user: user?.id! };
+							const mediaData = {
+								mediaUrl: mediaItems.filter((e) => e.type === "url").map((e) => e.url!),
+								image: formData,
+							};
+							const reviewData = { ...values, rating: Number(values.rating), product, user: user?.id || "" };
 
-						//   const res: any = await SubmitProductReview(reviewData, mediaData);
-						//   if (res && res?.review?.id) redirect(redirectUrl);
-						//   setErrors(res?.errors);
-						// });
+							try {
+								const res: SubmitReviewResponseTypes = await SubmitProductReview(reviewData, mediaData);
+								console.log(res);
+								if (res.success) router.push(redirectUrl);
+								setErrors(res?.errors);
+							} catch (error) {
+								console.log({ error });
+								let errorMessage = "Something went wrong!";
+								if (error instanceof Error) {
+									errorMessage = error.message || errorMessage;
+								}
+								setErrors([{ message: errorMessage }]);
+							}
+						});
 					}}
 				>
 					{({ errors, touched }) => (
