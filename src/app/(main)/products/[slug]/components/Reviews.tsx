@@ -29,7 +29,7 @@ export function Reviews({
 		return text.length > length ? text.slice(0, length) + "..." : text;
 	}
 
-	console.log(reviews);
+	// console.log(reviews);
 
 	return (
 		<div className="mt-12 bg-gray-100">
