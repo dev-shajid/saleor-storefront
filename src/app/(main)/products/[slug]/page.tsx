@@ -7,10 +7,16 @@ import xss from "xss";
 import invariant from "ts-invariant";
 import { type WithContext, type Product } from "schema-dts";
 import { AddButton } from "./AddButton";
+import { Reviews } from "./components/Reviews";
 import { VariantSelector } from "@/ui/components/VariantSelector";
 import { ProductImageWrapper } from "@/ui/atoms/ProductImageWrapper";
 import { executeGraphQL, formatMoney, formatMoneyRange } from "@/lib/graphql";
-import { CheckoutAddLineDocument, ProductDetailsDocument, ProductListDocument } from "@/gql/graphql";
+import {
+	CheckoutAddLineDocument,
+	GetProductReviewsDocument,
+	ProductDetailsDocument,
+	ProductListDocument,
+} from "@/gql/graphql";
 import * as Checkout from "@/lib/checkout";
 import { AvailabilityMessage } from "@/ui/components/AvailabilityMessage";
 
@@ -88,6 +94,16 @@ export default async function Page(props: { params: { slug: string }; searchPara
 	if (!product) {
 		notFound();
 	}
+
+	const data = await executeGraphQL(GetProductReviewsDocument, {
+		variables: {
+			product: product.id,
+			status: true,
+		},
+		revalidate: 60,
+	});
+
+	// console.log(data)
 
 	const firstImage = product.thumbnail;
 	const description = product?.description ? parser.parse(JSON.parse(product?.description)) : null;
@@ -213,7 +229,7 @@ export default async function Page(props: { params: { slug: string }; searchPara
 					</div>
 				</div>
 			</form>
-			<div>Review Section</div>
+			<Reviews reviewsData={data} productId={product.id} slug={product.slug} variant={searchParams.variant} />
 		</section>
 	);
 }
