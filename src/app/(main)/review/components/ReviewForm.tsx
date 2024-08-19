@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable import/order */
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import { useRouter } from "next/navigation";
@@ -70,24 +70,20 @@ export function ReviewForm({ searchParams }: Props) {
 	const [isPending, startTransition] = useTransition();
 	const [errors, setErrors] = useState<{ message: string }[] | null>(null);
 	const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-	const { user, loading, authenticated, tokenRefresh, tokenData } = useUser();
+	const { user, loading, authenticated } = useUser();
 
 	const router = useRouter();
 
 	// console.log({ user, setErrors, startTransition });
 
 	let redirectUrl = `/products/${slug}?success=true&message=Review Submitted Successfully! Wait for approval`;
-
+	// console.log(redirectUrl);
 	if (variant) redirectUrl += `&variant=${variant}`;
 
-	useEffect(() => {
-		if (!authenticated && !tokenData)
-			tokenRefresh().catch((error) => console.error("Error in refreshing token:", error));
-	}, [authenticated]);
-
 	if (!product || !slug) {
-		// --> FIXME:  !loading && !authenticated
+		// --> FIXME:  !authenticated
 		router.push("/404");
+		console.log(authenticated);
 	}
 
 	if (isPending || loading) {
@@ -97,8 +93,6 @@ export function ReviewForm({ searchParams }: Props) {
 			</div>
 		);
 	}
-
-	if (!loading && !authenticated && !tokenData) return null;
 
 	return (
 		<section className="mx-auto flex w-full items-center justify-center py-8">
@@ -119,12 +113,7 @@ export function ReviewForm({ searchParams }: Props) {
 								mediaUrl: mediaItems.filter((e) => e.type === "url").map((e) => e.url!),
 								image: mediaItems.filter((e) => e.type === "file").map((e) => e.file!),
 							};
-							const reviewData = {
-								...values,
-								rating: Number(values.rating),
-								product,
-								user: user?.id ?? tokenData?.user?.id ?? "",
-							};
+							const reviewData = { ...values, rating: Number(values.rating), product, user: user?.id || "" };
 
 							try {
 								const res: SubmitReviewResponseTypes = await SubmitProductReview(reviewData);

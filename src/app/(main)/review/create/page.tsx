@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
+import { getRefreshToken } from "../../action";
 import { ReviewForm } from "../components/ReviewForm";
 import { executeGraphQL } from "@/lib/graphql";
-import { ProductDetailsDocument } from "@/gql/graphql";
+import { ProductDetailsDocument, TokenRefreshDocument } from "@/gql/graphql";
 
 type Props = {
 	searchParams: {
@@ -22,8 +23,16 @@ export default async function Page({ searchParams }: Props) {
 		},
 		revalidate: 60,
 	});
+	const { tokenRefresh } = await executeGraphQL(TokenRefreshDocument, {
+		variables: {
+			refreshToken: await getRefreshToken(),
+		},
+		revalidate: 60,
+	});
 
-	if (!product || searchParams.product != product.id) {
+	// console.log({tokenRefresh: tokenRefresh})
+
+	if (!product || searchParams.product != product.id || !tokenRefresh?.user) {
 		notFound();
 	}
 	return (

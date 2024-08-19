@@ -6,6 +6,7 @@ import { type ResolvingMetadata, type Metadata } from "next";
 import xss from "xss";
 import invariant from "ts-invariant";
 import { type WithContext, type Product } from "schema-dts";
+import { getRefreshToken } from "../../action";
 import { AddButton } from "./AddButton";
 import { Reviews } from "./components/Reviews";
 import { AverageRating } from "./components/AverageRating";
@@ -18,6 +19,7 @@ import {
 	GetProductReviewsDocument,
 	ProductDetailsDocument,
 	ProductListDocument,
+	TokenRefreshDocument,
 } from "@/gql/graphql";
 import * as Checkout from "@/lib/checkout";
 import { AvailabilityMessage } from "@/ui/components/AvailabilityMessage";
@@ -100,15 +102,25 @@ export default async function Page(props: {
 		notFound();
 	}
 
-	const data = await executeGraphQL(GetProductReviewsDocument, {
+	const { tokenRefresh } = await executeGraphQL(TokenRefreshDocument, {
 		variables: {
-			product: product.id,
-			status: true,
+			refreshToken: await getRefreshToken(),
 		},
 		revalidate: 60,
 	});
 
-	// console.log(data)
+	const { getProductReview } = await executeGraphQL(GetProductReviewsDocument, {
+		variables: {
+			product: product.id,
+			status: true,
+		},
+		headers: {
+			Authorization: `Bearer ${tokenRefresh?.token ?? ""}`,
+		},
+		revalidate: 60,
+	});
+
+	// console.log(getProductReview)
 
 	const firstImage = product.thumbnail;
 	const description = product?.description ? parser.parse(JSON.parse(product?.description)) : null;
@@ -218,9 +230,9 @@ export default async function Page(props: {
 								{price}
 							</p>
 
-							{data.getProductReview && data.getProductReview?.length ? (
+							{getProductReview && getProductReview?.length ? (
 								<div>
-									<AverageRating reviews={data.getProductReview.map((e) => ({ rating: e?.rating || 0 }))} />
+									<AverageRating reviews={getProductReview.map((e) => ({ rating: e?.rating || 0 }))} />
 								</div>
 							) : null}
 
@@ -243,7 +255,7 @@ export default async function Page(props: {
 					</div>
 				</form>
 				<Reviews
-					// reviewsData={data}
+					reviews={getProductReview}
 					productId={product.id}
 					slug={product.slug}
 					variant={searchParams.variant}

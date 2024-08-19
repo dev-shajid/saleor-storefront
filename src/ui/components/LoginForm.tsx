@@ -1,5 +1,6 @@
-import { useSaleorAuthContext } from "@saleor/auth-sdk/react";
 import { type FormEvent, useState } from "react";
+import { useSaleorAuthContext } from "@saleor/auth-sdk/react";
+import { setRefreshToken } from "@/app/(main)/action";
 
 type FormValues = {
 	email: string;
@@ -18,7 +19,8 @@ export function LoginForm() {
 		event.preventDefault();
 
 		const { data } = await signIn(formValues);
-		console.log(data);
+		// console.log(data)
+		await setRefreshToken(data.tokenCreate.refreshToken ?? ""); // FIXME: set refresh token
 
 		if (data.tokenCreate.errors.length > 0) {
 			setErrors(data.tokenCreate.errors.map((error) => error.message));
