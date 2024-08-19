@@ -84,3 +84,16 @@ mutation userAddressCreate($address: AddressInput!, $type: AddressTypeEnum) {
 		}
 	}
 }
+
+mutation TokenRefresh($refreshToken: String!) {
+	tokenRefresh(refreshToken: $refreshToken) {
+		user {
+			id
+			email
+		}
+		token
+		errors {
+			message
+		}
+	}
+}

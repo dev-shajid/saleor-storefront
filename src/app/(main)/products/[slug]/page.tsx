@@ -243,7 +243,7 @@ export default async function Page(props: {
 					</div>
 				</form>
 				<Reviews
-					reviewsData={data}
+					// reviewsData={data}
 					productId={product.id}
 					slug={product.slug}
 					variant={searchParams.variant}

@@ -29524,3 +29524,88 @@ export function useUserAddressCreateMutation() {
 		UserAddressCreateDocument,
 	);
 }
+
+export type TokenRefresMutationVariables = Exact<{
+	csrfToken?: Scalars["String"];
+	refreshToken?: Scalars["String"];
+}>;
+
+export type TokenRefresMutation = {
+	tokenRefresh: {
+		user: {
+			id: string;
+			email: string;
+			addresses: Array<{
+				__typename?: "Address";
+				id: string;
+				city: string;
+				phone?: string | null;
+				postalCode: string;
+				companyName: string;
+				cityArea: string;
+				streetAddress1: string;
+				streetAddress2: string;
+				countryArea: string;
+				firstName: string;
+				lastName: string;
+				country: { __typename?: "CountryDisplay"; country: string; code: string };
+			}>;
+			defaultBillingAddress?: {
+				__typename?: "Address";
+				id: string;
+				city: string;
+				phone?: string | null;
+				postalCode: string;
+				companyName: string;
+				cityArea: string;
+				streetAddress1: string;
+				streetAddress2: string;
+				countryArea: string;
+				firstName: string;
+				lastName: string;
+				country: { __typename?: "CountryDisplay"; country: string; code: string };
+			} | null;
+			defaultShippingAddress?: {
+				__typename?: "Address";
+				id: string;
+				city: string;
+				phone?: string | null;
+				postalCode: string;
+				companyName: string;
+				cityArea: string;
+				streetAddress1: string;
+				streetAddress2: string;
+				countryArea: string;
+				firstName: string;
+				lastName: string;
+				country: { __typename?: "CountryDisplay"; country: string; code: string };
+			} | null;
+		} | null;
+		token: string;
+		errors: Array<{
+			__typename?: "AccountError";
+			message?: string | null;
+			field?: string | null;
+			code: AccountErrorCode;
+		}>;
+	} | null;
+};
+
+export const TokenRefresDocument = gql`
+	mutation TokenRefresh($refreshToken: String) {
+		tokenRefresh(refreshToken: $refreshToken) {
+			user {
+				id
+				email
+			}
+			token
+			errors {
+				message
+			}
+		}
+	}
+`;
+
+export function useTokenRefreshMutation() {
+	return Urql.useMutation<TokenRefresMutation, TokenRefresMutationVariables>(TokenRefresDocument);
+}
