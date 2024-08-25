@@ -16,7 +16,10 @@ type MediaArgs = {
 	mediaUrl?: string[] | undefined;
 };
 
-export const SubmitProductReview = async ({ rating, title, review, user, product }: SubmitReviewArgs) => {
+export const SubmitProductReview = async (
+	{ rating, title, review, user, product }: SubmitReviewArgs,
+	token: string,
+) => {
 	try {
 		const { submitProductReview } = await executeGraphQL(SubmitProductReviewDocument, {
 			variables: {
@@ -24,11 +27,15 @@ export const SubmitProductReview = async ({ rating, title, review, user, product
 					rating,
 					title,
 					review,
-					user: user || "VXNlcjox",
+					user,
 					product,
 				},
 			},
-			cache: "no-cache",
+			headers: {
+				// This is the token for the user
+				Authorization: `Bearer ${token}`,
+			},
+			cache: "no-store",
 		});
 
 		console.log("Review Response", submitProductReview);
@@ -42,10 +49,6 @@ export const SubmitProductReview = async ({ rating, title, review, user, product
 				errors: submitProductReview.errors.map((e) => ({ message: e.message! })).filter((e) => e.message),
 			};
 		}
-
-		// if (res?.submitProductReview?.review) {
-		//   await CreateReviewMedia(res.submitProductReview.review.id!, { image, mediaUrl });
-		// }
 
 		return { success: true, review: submitProductReview?.review, errors: [] };
 	} catch (error) {
@@ -132,7 +135,7 @@ export const CreateReviewMedia = async (review: string, { image, mediaUrl }: Med
 								mediaUrl: url,
 							},
 						},
-						cache: "no-cache",
+						cache: "no-store",
 					});
 
 					if (createReviewMedia?.errors.length)

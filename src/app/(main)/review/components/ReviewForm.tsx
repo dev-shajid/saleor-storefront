@@ -10,6 +10,7 @@ import { ErrorMessage } from "./ErrorMessage";
 import { ApiResponseErrors } from "./ApiResponseErrors";
 import { Loader } from "lucide-react";
 import { CreateReviewMedia, SubmitProductReview } from "../action";
+import { type TokenRefreshMutation } from "@/gql/graphql";
 
 type Props = {
 	searchParams: {
@@ -17,6 +18,7 @@ type Props = {
 		slug: string;
 		variant?: string;
 	};
+	tokenRefresh: TokenRefreshMutation["tokenRefresh"];
 };
 
 type FormValues = {
@@ -65,7 +67,7 @@ const SignupSchema = Yup.object().shape({
 	review: Yup.string().trim().min(5, "Too Short!").max(250, "Too Long!").required("Required Field"),
 });
 
-export function ReviewForm({ searchParams }: Props) {
+export function ReviewForm({ searchParams, tokenRefresh }: Props) {
 	const { product, slug, variant } = searchParams;
 	const [isPending, startTransition] = useTransition();
 	const [errors, setErrors] = useState<{ message: string }[] | null>(null);
@@ -113,18 +115,26 @@ export function ReviewForm({ searchParams }: Props) {
 								mediaUrl: mediaItems.filter((e) => e.type === "url").map((e) => e.url!),
 								image: mediaItems.filter((e) => e.type === "file").map((e) => e.file!),
 							};
-							const reviewData = { ...values, rating: Number(values.rating), product, user: user?.id || "" };
+							const reviewData = {
+								...values,
+								rating: Number(values.rating),
+								product,
+								user: tokenRefresh?.user?.id ?? "",
+							};
 
 							try {
-								const res: SubmitReviewResponseTypes = await SubmitProductReview(reviewData);
-								console.log(res);
+								const res: SubmitReviewResponseTypes = await SubmitProductReview(
+									reviewData,
+									tokenRefresh?.token ?? "",
+								);
+								console.log({ res, user });
 								if (!res.success) return setErrors(res.errors);
 
 								const mediaRes: SubmitReviewMediaResponseTypes = await CreateReviewMedia(
 									res?.review?.id ?? "",
 									mediaData,
 								); //"UmV2aWV3OjM="
-								console.log(mediaRes);
+								console.log({ mediaRes });
 								if (!mediaRes.success) return setErrors(mediaRes.errors.map((e) => ({ message: e.message })));
 								router.push(redirectUrl);
 							} catch (error) {

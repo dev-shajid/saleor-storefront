@@ -117,7 +117,8 @@ export default async function Page(props: {
 		headers: {
 			Authorization: `Bearer ${tokenRefresh?.token ?? ""}`,
 		},
-		revalidate: 60,
+		cache: "no-cache",
+		// revalidate: 60,
 	});
 
 	// console.log(getProductReview)

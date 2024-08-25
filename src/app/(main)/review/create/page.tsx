@@ -37,7 +37,7 @@ export default async function Page({ searchParams }: Props) {
 	}
 	return (
 		<>
-			<ReviewForm searchParams={searchParams} />
+			<ReviewForm searchParams={searchParams} tokenRefresh={tokenRefresh} />
 		</>
 	);
 }
